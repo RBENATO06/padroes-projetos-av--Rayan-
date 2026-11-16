@@ -1,0 +1,179 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+interface CloudProviderFactory <<AbstractFactory>> {
+    + getProviderName() : String
+    + createVirtualMachine() : VirtualMachine
+    + createObjectStorage() : ObjectStorage
+    + createMessageQueue() : MessageQueue
+    + getVmHourlyCost() : double
+    + getStorageCostPerGbMonth() : double
+    + getQueueMonthlyFixedCost() : double
+}
+
+class AwsFactory <<ConcreteFactory>> {
+    - vmCounter : AtomicInteger
+    - storageCounter : AtomicInteger
+    - queueCounter : AtomicInteger
+    + getProviderName() : String
+    + createVirtualMachine() : VirtualMachine
+    + createObjectStorage() : ObjectStorage
+    + createMessageQueue() : MessageQueue
+    + getVmHourlyCost() : double
+    + getStorageCostPerGbMonth() : double
+    + getQueueMonthlyFixedCost() : double
+}
+
+class AzureFactory <<ConcreteFactory>> {
+    - vmCounter : AtomicInteger
+    - storageCounter : AtomicInteger
+    - queueCounter : AtomicInteger
+    + getProviderName() : String
+    + createVirtualMachine() : VirtualMachine
+    + createObjectStorage() : ObjectStorage
+    + createMessageQueue() : MessageQueue
+    + getVmHourlyCost() : double
+    + getStorageCostPerGbMonth() : double
+    + getQueueMonthlyFixedCost() : double
+}
+
+interface VirtualMachine <<AbstractProduct>> {
+    + getId() : String
+    + getHourlyCost() : double
+}
+
+interface ObjectStorage <<AbstractProduct>> {
+    + getId() : String
+    + getCostPerGbMonth() : double
+}
+
+interface MessageQueue <<AbstractProduct>> {
+    + getId() : String
+    + getMonthlyFixedCost() : double
+}
+
+class AwsVirtualMachine <<ConcreteProduct>> {
+    - id : String
+    - hourlyCost : double
+    + getId() : String
+    + getHourlyCost() : double
+}
+
+class AzureVirtualMachine <<ConcreteProduct>> {
+    - id : String
+    - hourlyCost : double
+    + getId() : String
+    + getHourlyCost() : double
+}
+
+class AwsObjectStorage <<ConcreteProduct>> {
+    - id : String
+    - costPerGbMonth : double
+    + getId() : String
+    + getCostPerGbMonth() : double
+}
+
+class AzureObjectStorage <<ConcreteProduct>> {
+    - id : String
+    - costPerGbMonth : double
+    + getId() : String
+    + getCostPerGbMonth() : double
+}
+
+class AwsMessageQueue <<ConcreteProduct>> {
+    - id : String
+    - monthlyFixedCost : double
+    + getId() : String
+    + getMonthlyFixedCost() : double
+}
+
+class AzureMessageQueue <<ConcreteProduct>> {
+    - id : String
+    - monthlyFixedCost : double
+    + getId() : String
+    + getMonthlyFixedCost() : double
+}
+
+class ConfigurationManager <<Singleton>> {
+    - {static} instance : ConfigurationManager
+    - defaultRegion : String
+    - maxMonthlyBudget : double
+    - ConfigurationManager()
+    + {static} getInstance() : ConfigurationManager
+    + getDefaultRegion() : String
+    + getMaxMonthlyBudget() : double
+}
+
+class AuditLogger <<Singleton>> {
+    - {static} instance : AuditLogger
+    - records : List<AuditRecord>
+    - AuditLogger()
+    + {static} getInstance() : AuditLogger
+    + log(environmentName : String, providerName : String, result : String, reason : String) : void
+    + printHistory() : void
+}
+
+class AuditRecord <<Entity>> {
+    - timestamp : LocalDateTime
+    - environmentName : String
+    - providerName : String
+    - result : String
+    - reason : String
+    + toString() : String
+}
+
+class ProvisionRequest <<DTO>> {
+    - environmentName : String
+    - providerName : String
+    - vmCount : int
+    - storageGb : int
+}
+
+class EnvironmentProvisioner <<Client>> {
+    - factory : CloudProviderFactory
+    + EnvironmentProvisioner(factory : CloudProviderFactory)
+    + provision(request : ProvisionRequest) : void
+}
+
+class CloudProviderSelector <<FactorySelector>> {
+    - {static} FACTORIES : Map<String, CloudProviderFactory>
+    + {static} select(providerName : String) : CloudProviderFactory
+}
+
+class Main <<Application>> {
+    + {static} main(args : String[]) : void
+}
+
+CloudProviderFactory <|.. AwsFactory
+CloudProviderFactory <|.. AzureFactory
+
+VirtualMachine <|.. AwsVirtualMachine
+VirtualMachine <|.. AzureVirtualMachine
+ObjectStorage <|.. AwsObjectStorage
+ObjectStorage <|.. AzureObjectStorage
+MessageQueue <|.. AwsMessageQueue
+MessageQueue <|.. AzureMessageQueue
+
+AwsFactory ..> AwsVirtualMachine : creates
+AwsFactory ..> AwsObjectStorage : creates
+AwsFactory ..> AwsMessageQueue : creates
+
+AzureFactory ..> AzureVirtualMachine : creates
+AzureFactory ..> AzureObjectStorage : creates
+AzureFactory ..> AzureMessageQueue : creates
+
+EnvironmentProvisioner --> CloudProviderFactory
+EnvironmentProvisioner ..> ProvisionRequest
+EnvironmentProvisioner ..> VirtualMachine
+EnvironmentProvisioner ..> ObjectStorage
+EnvironmentProvisioner ..> MessageQueue
+EnvironmentProvisioner ..> ConfigurationManager : uses
+EnvironmentProvisioner ..> AuditLogger : uses
+
+AuditLogger "1" *-- "*" AuditRecord
+CloudProviderSelector --> CloudProviderFactory
+Main ..> CloudProviderSelector
+Main ..> EnvironmentProvisioner
+Main ..> ProvisionRequest
+Main ..> AuditLogger
+@enduml

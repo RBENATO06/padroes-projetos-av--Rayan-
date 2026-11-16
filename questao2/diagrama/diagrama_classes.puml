@@ -1,0 +1,162 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+interface AuctionSubject <<Subject>> {
+    + addObserver(observer : AuctionObserver) : void
+    + removeObserver(observer : AuctionObserver) : void
+    + notifyObservers(bid : Bid) : void
+}
+
+interface AuctionObserver <<Observer>> {
+    + update(lot : AuctionLot, bid : Bid) : void
+}
+
+class AuctionLot <<ConcreteSubject / Context>> {
+    - name : String
+    - category : String
+    - initialPrice : double
+    - reservePrice : double
+    - currentBid : double
+    - closed : boolean
+    - sold : boolean
+    - highestBidder : Participant
+    - bids : List<Bid>
+    - observers : List<AuctionObserver>
+    - commissionStrategy : CommissionStrategy
+    + addObserver(observer : AuctionObserver) : void
+    + removeObserver(observer : AuctionObserver) : void
+    + notifyObservers(bid : Bid) : void
+    + placeBid(participant : Participant, amount : double) : boolean
+    + setCommissionStrategy(strategy : CommissionStrategy) : void
+    + close() : void
+    + calculateCommission() : double
+}
+
+class Bid <<Entity>> {
+    - participant : Participant
+    - amount : double
+    - timestamp : LocalDateTime
+}
+
+class Participant <<ConcreteObserver>> {
+    - name : String
+    + update(lot : AuctionLot, bid : Bid) : void
+}
+
+class AuctioneerPanel <<ConcreteObserver>> {
+    - highestBids : Map<String, Double>
+    - bidCounts : Map<String, Integer>
+    + update(lot : AuctionLot, bid : Bid) : void
+}
+
+class BidAuditor <<ConcreteObserver>> {
+    - logs : List<String>
+    + update(lot : AuctionLot, bid : Bid) : void
+    + getLogs() : List<String>
+}
+
+interface CommissionStrategy <<Strategy>> {
+    + calculate(salePrice : double) : double
+}
+
+class ArtCommissionStrategy <<ConcreteStrategy>> {
+    + calculate(salePrice : double) : double
+}
+
+class VehicleCommissionStrategy <<ConcreteStrategy>> {
+    + calculate(salePrice : double) : double
+}
+
+class RealEstateCommissionStrategy <<ConcreteStrategy>> {
+    + calculate(salePrice : double) : double
+}
+
+class ElectronicsCommissionStrategy <<ConcreteStrategy>> {
+    + calculate(salePrice : double) : double
+}
+
+interface InvoiceComponent <<Component>> {
+    + getLotName() : String
+    + getSalePrice() : double
+    + getTotalCost() : double
+    + getServiceDescriptions() : List<String>
+}
+
+class BaseLotPurchase <<ConcreteComponent>> {
+    - lotName : String
+    - salePrice : double
+    + getLotName() : String
+    + getSalePrice() : double
+    + getTotalCost() : double
+    + getServiceDescriptions() : List<String>
+}
+
+abstract class AdditionalServiceDecorator <<Decorator>> {
+    # wrapped : InvoiceComponent
+    + getLotName() : String
+    + getSalePrice() : double
+    + getTotalCost() : double
+    + getServiceDescriptions() : List<String>
+}
+
+class TransportInsuranceDecorator <<ConcreteDecorator>> {
+    + getTotalCost() : double
+    + getServiceDescriptions() : List<String>
+}
+
+class AuthenticityCertificateDecorator <<ConcreteDecorator>> {
+    + getTotalCost() : double
+    + getServiceDescriptions() : List<String>
+}
+
+class SpecialPackagingDecorator <<ConcreteDecorator>> {
+    + getTotalCost() : double
+    + getServiceDescriptions() : List<String>
+}
+
+class ExpressDeliveryDecorator <<ConcreteDecorator>> {
+    + getTotalCost() : double
+    + getServiceDescriptions() : List<String>
+}
+
+class InvoicePrinter <<Client>> {
+    + print(invoice : InvoiceComponent) : void
+}
+
+class SellerSettlement <<Service>> {
+    + print(lot : AuctionLot) : void
+}
+
+class Main <<Application>> {
+    + {static} main(args : String[]) : void
+}
+
+AuctionSubject <|.. AuctionLot
+AuctionObserver <|.. Participant
+AuctionObserver <|.. AuctioneerPanel
+AuctionObserver <|.. BidAuditor
+AuctionLot "1" o-- "*" AuctionObserver : notifies
+AuctionLot "1" *-- "*" Bid
+Bid --> Participant
+
+CommissionStrategy <|.. ArtCommissionStrategy
+CommissionStrategy <|.. VehicleCommissionStrategy
+CommissionStrategy <|.. RealEstateCommissionStrategy
+CommissionStrategy <|.. ElectronicsCommissionStrategy
+AuctionLot --> CommissionStrategy : uses
+
+InvoiceComponent <|.. BaseLotPurchase
+InvoiceComponent <|.. AdditionalServiceDecorator
+AdditionalServiceDecorator o-- InvoiceComponent : wraps
+AdditionalServiceDecorator <|-- TransportInsuranceDecorator
+AdditionalServiceDecorator <|-- AuthenticityCertificateDecorator
+AdditionalServiceDecorator <|-- SpecialPackagingDecorator
+AdditionalServiceDecorator <|-- ExpressDeliveryDecorator
+
+BaseLotPurchase ..> AuctionLot : reads
+InvoicePrinter ..> InvoiceComponent : prints
+SellerSettlement ..> AuctionLot : reads
+Main ..> AuctionLot
+Main ..> InvoicePrinter
+Main ..> SellerSettlement
+@enduml
